@@ -8,6 +8,7 @@ export interface IMessage {
 
 export interface IChatSession extends Document {
   sessionId: string;
+  sessionTitle: string;
   userId: string; // email of the user
   messages: IMessage[];
 }
@@ -21,7 +22,11 @@ const messageSchema = new Schema<IMessage>({
 const chatSessionSchema = new Schema<IChatSession>({
   sessionId: { type: String, required: true, unique: true },
   userId: { type: String, required: true },
+  sessionTitle: { type: String, required: true },
   messages: [messageSchema],
 });
 
-export const ChatSession = mongoose.model<IChatSession>("ChatSession", chatSessionSchema);
+export const ChatSession = mongoose.model<IChatSession>(
+  "ChatSession",
+  chatSessionSchema
+);

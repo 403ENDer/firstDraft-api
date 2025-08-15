@@ -2,6 +2,7 @@ import { Router } from "express";
 import { signup, signin } from "../controllers/authController";
 import { signupSchema, signinSchema } from "../validators/authValidators";
 import { zodValidate } from "../middleware/zodValidate";
+import { jwtAuth } from "../middleware/jwtAuth";
 
 const authRouter = Router();
 
