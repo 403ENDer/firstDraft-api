@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ChatSession } from "../models/ChatSession";
-import { AuthenticatedRequest } from "../middleware/jwtAuth";
 
 // This is a new function to handle retries with exponential backoff
 const retryWithExponentialBackoff = async (
@@ -24,62 +23,50 @@ const retryWithExponentialBackoff = async (
   }
 };
 
-export const chatMessage = async (req: AuthenticatedRequest, res: Response) => {
-  const { message, sessionId } = req.body;
-  const email = req.user?.email;
+export const chatMessage = async (req: Request, res: Response) => {
+  const { message, sessionId, email, sessionTitle } = req.body;
   if (!message || !sessionId || !email) {
     return res
       .status(400)
       .json({ message: "Message, sessionId, and email are required" });
   }
 
-  // Ensure message and assistantReply are strings
-  const userMessageContent =
-    typeof message === "string" ? message : JSON.stringify(message);
-
   // The prompt is updated to explicitly request a JSON object with specific keys.
-  const prompt = `Act like an elite AI prompt architect and cinematic content director with expert-level mastery in OpenAI prompt engineering and Google VEO3 video generation. Your output must always be a valid JSON object with two keys: "steps" and "result".
+  const prompt = `Act like an elite AI prompt architect and cinematic content director with expert-level mastery in OpenAI prompt engineering and Google VEO3 video generation. Your task is to do the following:
 
-1.  **If the user’s request is for a VEO3-optimized prompt:**
-    a.  **Task:** Generate a cinematic video script based on the user's concept.
-    b.  **Process:** Develop an 8-chunk cinematic sequence where each chunk is unique and includes:
-        * B-roll description (vivid and varied environments).
-        * Voiceover script (1–2 emotionally engaging sentences).
-        * Scene-setting details (time, location, character actions, etc.).
-        * Explicit "do not include" constraints.
-        * Cinematic style notes (lighting, mood, pacing).
-    c.  **Format:** Structure the VEO3 prompts as: "Setting → Action → Camera/Angle → Audio → Don’ts → Style".
-    d.  **Output:** The "result" key in your JSON should contain the complete, ready-for-input VEO3 prompt as a single string.
-    e.  **Steps:** The "steps" key should be a list of strings detailing the key steps you took to generate the cinematic script.
+1. If the user's request relates to creating a VEO3-optimized prompt for cinematic video script generation:
+   a. Follow the systematic multi-phase process described in the "AI-Powered Cinematic Video Script Generator" framework, integrating the best practices from OpenAI's prompt engineering guide.
+   b. Extract and analyze the given concept, feature description, or idea. If the user has not provided sufficient detail, think creatively to infer plausible, contextually relevant details while maintaining narrative coherence.
+   c. Develop an 8-chunk cinematic sequence, where each chunk includes:
+      - B-roll description (with vivid, realistic, and varied environments, avoiding repetition of roles or settings).
+      - Voiceover script (1–2 sentences, emotionally engaging, conversational tone).
+      - Specific scene-setting details: time of day, location, character actions, camera angles, ambient sounds.
+      - Explicit "do not include" constraints to prevent unwanted AI generation errors (e.g., no captions, no direct-to-camera looks, avoid out-of-place gestures).
+      - Cinematic style notes: lighting, mood, pacing, and diversity.
+   d. Format your VEO3 prompts in the structure:
+   Setting → Action → Camera/Angle → Audio → Don'ts → Style
+   e. Apply VEO3 technical mastery: character consistency, scene flow, and realism.
+   f. Ensure your script is ready for immediate VEO3 input without manual editing.
 
-2.  **If the user’s request is to ask a question, modify the prompt, or is unrelated to VEO3 generation:**
-    a.  **Task:** Answer the question directly, provide clarification, or confirm the prompt modification.
-    b.  **Process:** Use your expertise to provide a clear, complete, and relevant explanation.
-    c.  **Output:** The "result" key in your JSON should contain the answer to the user's question or the confirmation of the prompt modification as a single string.
-    d.  **Steps:** The "steps" key should be a list of strings explaining the process you followed to address the user's non-VEO3-related request.
+2. If the user's request is unrelated to VEO3 prompt generation:
+   - Simply answer the question in full, using the clearest, most complete, and relevant explanation possible.
+   - Follow the principles of clarity, completeness, and persona alignment from the OpenAI prompt engineering guide.
 
-**Always:**
+3. Always:
+   - Ask for missing critical details when necessary, but if unavailable, use logical inference and creative expansion to maintain output quality.
+   - Think step-by-step, reasoning internally before producing the final output.
+   - Ensure final outputs are long, rich in detail, and professionally structured.
 
-* Return your full response as a single JSON object. Do not include any other text, code, or explanations outside the JSON block.
-* The "steps" key should be a list of strings describing your internal reasoning or actions.
-* The "result" key should contain the final, polished output.
-
-**Take a deep breath and work on this problem step-by-step.**
+Take a deep breath and work on this problem step-by-step.
 
 User message: ${message}
 
-Json example for VEO3 request:
+Your output should be a valid json format.
+Json example:
 {
-"steps": ["Analyzing the user's concept of...", "Developing an 8-chunk cinematic sequence...", "Structuring the VEO3 prompt with cinematic details..."],
-"result": "Setting: [Vivid B-roll description] → Action: [Character actions] → Camera/Angle: [Camera shots] → Audio: [Ambient sounds and voiceover] → Don’ts: [Constraints] → Style: [Cinematic notes]."
-}
-
-Json example for a general question:
-{
-"steps": ["Analyzing the user's question...", "Formulating a clear and complete answer..."],
-"result": "A clear and complete explanation to the user's question about prompt engineering or a confirmation of their requested prompt modification."
-}
-`;
+  "steps": ["List of steps you have taken to process"],
+  "result": "Result of the process as a string"
+}`;
 
   const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -88,19 +75,32 @@ Json example for a general question:
     responseMimeType: "application/json",
   };
 
+  const chatHistory = await ChatSession.findOne({ sessionId });
+  const historyContents =
+    chatHistory?.messages.slice(-4).map((m) => ({
+      role: m.role,
+      parts: [{ text: m.content }],
+    })) || [];
+
+  const contents = [
+    ...historyContents,
+    { role: "user", parts: [{ text: prompt }] },
+  ];
+
   try {
     const result = await retryWithExponentialBackoff(() =>
       model.generateContent({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: generationConfig,
+        contents,
+        generationConfig,
       })
     );
+
+    // Parse the JSON response and extract the result
     const jsonResponse = JSON.parse(result.response.text());
-    let assistantReply = jsonResponse.result;
-    const assistantMessageContent =
-      typeof assistantReply === "string"
-        ? assistantReply
-        : JSON.stringify(assistantReply);
+    const assistantReply =
+      typeof jsonResponse.result === "string"
+        ? jsonResponse.result
+        : JSON.stringify(jsonResponse.result);
 
     // Find or create session
     let session = await ChatSession.findOne({ sessionId });
@@ -109,34 +109,43 @@ Json example for a general question:
       session = new ChatSession({
         sessionId,
         userId: email,
-        sessionTitle: userMessageContent,
+        sessionTitle: sessionTitle || "New Chat",
         messages: [
-          { role: "user", content: userMessageContent, timestamp: new Date() },
-          {
-            role: "assistant",
-            content: assistantMessageContent,
-            timestamp: new Date(),
-          },
+          { role: "user", content: message, timestamp: new Date() },
+          { role: "assistant", content: assistantReply, timestamp: new Date() },
         ],
       });
     } else {
       // Add to existing session
       session.messages.push(
-        { role: "user", content: userMessageContent, timestamp: new Date() },
-        {
-          role: "assistant",
-          content: assistantMessageContent,
-          timestamp: new Date(),
-        }
+        { role: "user", content: message, timestamp: new Date() },
+        { role: "assistant", content: assistantReply, timestamp: new Date() }
       );
     }
     await session.save();
+
     res.json({ response: assistantReply, sessionId });
   } catch (error) {
     console.error("Error generating or parsing content:", error);
     res
       .status(500)
       .json({ message: "Failed to generate a structured response." });
+  }
+};
+
+export const getSessionsByEmail = async (req: Request, res: Response) => {
+  const { email } = req.params;
+  if (!email) {
+    return res.status(400).json({ message: "email is required" });
+  }
+  try {
+    const sessions = await ChatSession.find({ userId: email }).select(
+      "sessionId userId messages.timestamp sessionTitle"
+    );
+    res.json({ email, sessions });
+  } catch (error) {
+    console.error("Error fetching sessions by email:", error);
+    res.status(500).json({ message: "Failed to fetch sessions." });
   }
 };
 
@@ -154,25 +163,5 @@ export const getMessages = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error fetching messages:", error);
     res.status(500).json({ message: "Failed to fetch messages." });
-  }
-};
-
-export const getSessionsByEmail = async (
-  req: AuthenticatedRequest,
-  res: Response
-) => {
-  const email = req.user?.email;
-  if (!email) {
-    return res.status(400).json({ message: "email is required" });
-  }
-  try {
-    const sessions = await ChatSession.find({ userId: email }).select(
-      "sessionId userId messages.timestamp sessionTitle"
-    );
-    console.log(sessions);
-    res.json({ email, sessions });
-  } catch (error) {
-    console.error("Error fetching sessions by email:", error);
-    res.status(500).json({ message: "Failed to fetch sessions." });
   }
 };

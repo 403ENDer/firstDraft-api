@@ -4,7 +4,7 @@
   "description": "",
   "main": "app.ts",
   "scripts": {
-    "build": "npx tsc --output public",
+    "build": "npx tsc",
     "start": "node src/app.ts",
     "dev": "nodemon src/app.ts"
   },
