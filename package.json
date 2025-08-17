@@ -14,15 +14,21 @@
   "type": "commonjs",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@langchain/core": "^0.3.71",
+    "@langchain/google-genai": "^0.2.16",
     "@types/cors": "^2.8.19",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/mongoose": "^5.11.96",
+    "@types/multer": "^2.0.0",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
+    "langchain": "^0.3.30",
     "mongoose": "^8.17.1",
+    "multer": "^2.0.2",
+    "winston": "^3.17.0",
     "zod": "^4.0.17"
   },
   "devDependencies": {

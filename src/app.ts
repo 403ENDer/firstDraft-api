@@ -1,22 +1,22 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import multer from "multer";
 import authRoutes from "./routes/authRoutes";
 import chatRoutes from "./routes/chatRoutes";
 import { connectDB } from "./config/database";
 
-// Load environment variables
 dotenv.config();
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Routes
+const upload = multer();
+
 app.use("/api/auth", authRoutes);
-app.use("/api/chat", chatRoutes);
+app.use("/api/chat", upload.any(), chatRoutes);
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || "localhost";
