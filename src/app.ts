@@ -18,8 +18,7 @@ app.use(express.json());
 // --- CORS: restrict in production ---
 app.use(
   cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    origin: [process.env.HOSTED_URI!, process.env.LOCAL_URI!],
     credentials: true,
   })
 );
