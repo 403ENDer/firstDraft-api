@@ -30,7 +30,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/chat", upload.any(), chatRoutes);
 
 app.get("/", (req, res) => {
-  res.send("✅ VEO3 Script Generator API is running");
+  console.log(process.env.MONGO_URI);
+  res.send("VEO3 Script Generator API is running");
 });
 
 // --- Error Handling ---
