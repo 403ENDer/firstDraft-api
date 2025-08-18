@@ -38,11 +38,41 @@ export const chatMessage = async (req: Request, res: Response) => {
     const response = await llm.processUserInput(message, sessionId);
 
     // Parse the JSON response and extract the result
-    // const jsonResponse = JSON.parse(result.result);
+    if (response.error) {
+      return res.status(500).json({ message: response.error });
+    }
+
+    // Ensure we have a result
+    if (!response.result) {
+      return res
+        .status(500)
+        .json({ message: "No response generated from AI model" });
+    }
+
     const assistantReply =
       typeof response.result === "string"
         ? response.result
         : JSON.stringify(response.result);
+
+    // Validate that the response is not empty
+    if (
+      !assistantReply ||
+      assistantReply.trim() === "" ||
+      assistantReply === "null" ||
+      assistantReply === "undefined"
+    ) {
+      return res
+        .status(500)
+        .json({ message: "AI model generated an empty response" });
+    }
+
+    // Log response details for debugging
+    console.log("Processing response:", {
+      workflow: response.workflow,
+      classification: response.classification,
+      resultType: typeof response.result,
+      assistantReplyLength: assistantReply.length,
+    });
 
     // Find or create session
     let session = await ChatSession.findOne({ sessionId });
@@ -53,18 +83,25 @@ export const chatMessage = async (req: Request, res: Response) => {
         userId: email,
         sessionTitle: sessionTitle || "New Chat",
         messages: [
-          { role: "user", content: message, timestamp: new Date() },
+          { role: "user", content: message.trim(), timestamp: new Date() },
           { role: "assistant", content: assistantReply, timestamp: new Date() },
         ],
       });
     } else {
       // Add to existing session
       session.messages.push(
-        { role: "user", content: message, timestamp: new Date() },
+        { role: "user", content: message.trim(), timestamp: new Date() },
         { role: "assistant", content: assistantReply, timestamp: new Date() }
       );
     }
-    await session.save();
+
+    // Validate the session before saving
+    try {
+      await session.save();
+    } catch (saveError) {
+      console.error("Failed to save chat session:", saveError);
+      return res.status(500).json({ message: "Failed to save chat session" });
+    }
 
     res.json({ response: assistantReply, sessionId });
   } catch (error) {
