@@ -1,22 +1,12 @@
 import mongoose from "mongoose";
+import dotenv from "dotenv";
+dotenv.config();
 
 export const connectDB = async () => {
   const mongoURI = process.env.MONGO_URI;
   console.log(mongoURI);
   if (!mongoURI) {
     console.error("MONGO_URI environment variable is not set");
-    process.exit(1);
-  }
-
-  // Validate connection string format
-  if (
-    !mongoURI.startsWith("mongodb://") &&
-    !mongoURI.startsWith("mongodb+srv://")
-  ) {
-    console.error(
-      "Invalid MongoDB connection string format. Must start with 'mongodb://' or 'mongodb+srv://'"
-    );
-    console.error("Current value:", mongoURI);
     process.exit(1);
   }
 
