@@ -32,6 +32,7 @@
     "langchain": "^0.3.30",
     "mongoose": "^8.17.1",
     "multer": "^2.0.2",
+    "serverless-http": "^3.2.0",
     "winston": "^3.17.0",
     "zod": "^4.0.17"
   },
