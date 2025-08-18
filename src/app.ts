@@ -4,9 +4,9 @@ import dotenv from "dotenv";
 import helmet from "helmet";
 import mongoose from "mongoose";
 import multer from "multer";
-import authRoutes from "../routes/authRoutes";
-import chatRoutes from "../routes/chatRoutes";
-import { connectDB } from "../config/database";
+import authRoutes from "./routes/authRoutes";
+import chatRoutes from "./routes/chatRoutes";
+import { connectDB } from "./config/database";
 import serverless from "serverless-http";
 
 dotenv.config();
