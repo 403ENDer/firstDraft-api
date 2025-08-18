@@ -1,16 +1,8 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "src/app.ts",
-      "use": "@vercel/node",
-      "config": { "includeFiles": ["public/**"] }
+  "functions": {
+    "src/app.ts": {
+      "runtime": "nodejs22.x"
     }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "src/app.ts"
-    }
-  ]
+  },
+  "routes": [{ "src": "/(.*)", "dest": "src/app.ts" }]
 }
