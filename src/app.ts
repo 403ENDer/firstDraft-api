@@ -7,11 +7,11 @@ import multer from "multer";
 import authRoutes from "./routes/authRoutes";
 import chatRoutes from "./routes/chatRoutes";
 import { connectDB } from "./config/database";
-import serverless from "serverless-http";
 
 dotenv.config();
 
 const app = express();
+const PORT = process.env.PORT || 5000;
 
 // --- Security & Middleware ---
 app.use(helmet());
@@ -59,4 +59,7 @@ connectDB().catch((err) => {
   console.error("MongoDB connection failed:", err);
 });
 
-export default serverless(app);
+// --- Start Server ---
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
