@@ -61,7 +61,6 @@ export const signin = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
     const users = await User.find();
-    console.log(users);
     const user = await User.findOne({ email });
     if (!user) {
       return res

@@ -25,7 +25,7 @@ const retryWithExponentialBackoff = async (
 };
 
 export const chatMessage = async (req: Request, res: Response) => {
-  const { message, sessionId, email, sessionTitle } = req.body;
+  const { message, sessionId, email, sessionTitle, screenplayType } = req.body;
 
   if (!message || !sessionId || !email) {
     return res
@@ -35,7 +35,11 @@ export const chatMessage = async (req: Request, res: Response) => {
 
   try {
     const llm = new LLM();
-    const response = await llm.processUserInput(message, sessionId);
+    const response = await llm.processUserInput(
+      message,
+      sessionId,
+      screenplayType
+    );
 
     // Parse the JSON response and extract the result
     if (response.error) {
@@ -65,14 +69,6 @@ export const chatMessage = async (req: Request, res: Response) => {
         .status(500)
         .json({ message: "AI model generated an empty response" });
     }
-
-    // Log response details for debugging
-    console.log("Processing response:", {
-      workflow: response.workflow,
-      classification: response.classification,
-      resultType: typeof response.result,
-      assistantReplyLength: assistantReply.length,
-    });
 
     // Find or create session
     let session = await ChatSession.findOne({ sessionId });

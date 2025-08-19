@@ -369,9 +369,9 @@ Output Rules:
     }
   }
 
-  public async generateScreenplay(chunks: any) {
+  public async generateScreenplay(chunks: any, screenplayType: string) {
     const template = new PromptTemplate({
-      inputVariables: ["chunks"],
+      inputVariables: ["chunks", "screenplayType"],
       template: `
       Act like a professional screenplay writer and cinematic scene designer. 
 You will be given an AI-generated structured output divided into 8 chunks (chunk1 to chunk8). 
@@ -421,7 +421,7 @@ json format:
       `,
     });
 
-    const prompt = await template.format({ chunks });
+    const prompt = await template.format({ chunks, screenplayType });
     const model = this.getModel();
     const rawOutput = await model.invoke(prompt);
 
@@ -501,7 +501,11 @@ json format:
   }
 
   /** Main workflow */
-  public async processUserInput(userInput: string, sessionId: string) {
+  public async processUserInput(
+    userInput: string,
+    sessionId: string,
+    screenplayType: string
+  ) {
     // Step 1: Classification
     const classificationResult = await this.classifyInput(userInput);
     const classification = classificationResult.classification || "";
@@ -535,7 +539,10 @@ json format:
           details: techLayer,
         };
       }
-      const screenplay = await this.generateScreenplay(techLayer);
+      const screenplay = await this.generateScreenplay(
+        techLayer,
+        screenplayType
+      );
       if ("error" in screenplay) {
         return {
           workflow: "feature_processing",

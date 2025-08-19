@@ -4,7 +4,6 @@ dotenv.config();
 
 export const connectDB = async () => {
   const mongoURI = process.env.MONGO_URI;
-  console.log(mongoURI);
   if (!mongoURI) {
     console.error("MONGO_URI environment variable is not set");
     process.exit(1);
