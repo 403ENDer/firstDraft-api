@@ -226,7 +226,6 @@ OR
     try {
       return JSON.parse(cleaned);
     } catch (err) {
-      this.logger.error(`Failed to parse classification JSON: ${err}`);
       return { raw_output: cleaned, error: "Failed to parse JSON" };
     }
   }
@@ -282,7 +281,6 @@ Follow these two phases:
     try {
       return JSON.parse(cleaned);
     } catch (err) {
-      this.logger.error(`Failed to parse feature analysis JSON: ${err}`);
       return { raw_output: cleaned, error: "Failed to parse JSON" };
     }
   }
@@ -428,7 +426,6 @@ json format:
     const rawOutput = await model.invoke(prompt);
 
     const cleaned = this.cleanText(rawOutput.content?.toString() || "");
-    console.log("Cleaned text:", cleaned);
 
     try {
       return JSON.parse(cleaned);
@@ -438,7 +435,6 @@ json format:
 
       // Try to fix the JSON and parse again
       const fixed = this.tryFixJSON(cleaned);
-      console.log("Attempting to fix JSON:", fixed);
 
       try {
         return JSON.parse(fixed);
@@ -448,7 +444,6 @@ json format:
         // Third attempt: Try to reconstruct the JSON structure
         try {
           const reconstructed = this.reconstructJSON(cleaned);
-          console.log("Attempting to reconstruct JSON:", reconstructed);
           return JSON.parse(reconstructed);
         } catch (thirdErr) {
           console.error(
@@ -507,8 +502,6 @@ json format:
 
   /** Main workflow */
   public async processUserInput(userInput: string, sessionId: string) {
-    this.logger.info(`Processing user input: ${userInput}`);
-
     // Step 1: Classification
     const classificationResult = await this.classifyInput(userInput);
     const classification = classificationResult.classification || "";
@@ -526,7 +519,10 @@ json format:
     } else if (classification === "Feature Description") {
       const featureAnalysis = await this.analyzeFeature(userInput);
       if ("error" in featureAnalysis) {
-        return { error: "Feature analysis failed", details: featureAnalysis };
+        return {
+          error: "Feature analysis failed try again after some time",
+          details: featureAnalysis,
+        };
       }
 
       const techLayer = await this.generateTechLayer(
@@ -534,12 +530,13 @@ json format:
         userInput
       );
       if ("error" in techLayer) {
-        return { error: "Tech layer failed", details: techLayer };
+        return {
+          error: "Tech layer failed try again after some time",
+          details: techLayer,
+        };
       }
       const screenplay = await this.generateScreenplay(techLayer);
       if ("error" in screenplay) {
-        console.error("Screenplay generation failed, using fallback response");
-        // Return a fallback response instead of failing completely
         return {
           workflow: "feature_processing",
           classification,
